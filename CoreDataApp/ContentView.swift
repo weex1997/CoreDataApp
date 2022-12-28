@@ -10,79 +10,82 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    
+    
+    @FetchRequest(entity: NamesEntity.entity(),
+                  sortDescriptors: [NSSortDescriptor(keyPath: \NamesEntity.pepoleName, ascending: false)])
+    var Names: FetchedResults<NamesEntity>
+    
+    @State var textFieldText: String = ""
     var body: some View {
         NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
-                    }
+            VStack(spacing: 20){
+                TextField("Enter Name...", text: $textFieldText)
+                    .padding(.top, 40)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth:250)
+                    .frame(maxHeight: 50)
+                Button {
+                    addItem()
+                } label: {
+                    Text("Submit")
+                        .foregroundColor (.white)
+                        .frame(maxWidth:100)
+                        .frame(height: 40)
+                        .background(Color(.gray))
+                        .cornerRadius(10)
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                .padding(.top, 10)
+                List {
+                    ForEach(Names) { name in
+                        Text(name.pepoleName ?? "")
+                    }.onDelete (perform: deleteItems)
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
+                
+            }.background(Color(red: 0.949, green: 0.949, blue: 0.971))
+            .navigationTitle("Names System")
+            
         }
     }
-
+    
     private func addItem() {
         withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+            let newName = NamesEntity(context: viewContext)
+            newName.pepoleName = textFieldText
+            saveItems()
+            textFieldText = ""
         }
     }
-
+    
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+            guard let index = offsets.first else { return }
+            let NamesEntity = Names [index]
+            viewContext.delete(NamesEntity)
+            saveItems()
         }
     }
-}
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    private func saveItems () {
+        do {
+            try viewContext.save()
+        } catch {
+            // Replace this implementation with code to handle the error appropriately.
+            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+    }
+    
+    private let itemFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        return formatter
+    }()
+    
+    struct ContentView_Previews: PreviewProvider {
+        static var previews: some View {
+            ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        }
     }
 }
